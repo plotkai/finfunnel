@@ -324,62 +324,111 @@
     </div>
     
     <div class="modal-body edit-modal-form">
-      <div class="form-group">
-        <label class="field-label" for="modal-input-name">Title / Source Name</label>
-        <input type="text" id="modal-input-name" class="card-input modal-field" placeholder="e.g. Primary Salary, Rent, Mutual Funds">
+      <!-- Title / Source Name -->
+      <div class="modal-form-group">
+        <label class="modal-field-label" for="modal-input-name">
+          <span class="label-icon-badge text-cyan">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+          </span>
+          <span class="label-text">Title / Source Name</span>
+        </label>
+        <div class="modal-input-wrapper">
+          <input type="text" id="modal-input-name" class="card-input modal-field" placeholder="e.g. Primary Salary, Rent, Mutual Funds">
+        </div>
       </div>
 
       <!-- Type Switcher for Spends only -->
-      <div id="modal-spend-type-row" class="type-toggle-row modal-type-toggle">
-        <button type="button" id="modal-type-fixed" class="type-toggle-btn active">
-          Fixed Amount (<span class="currency-symbol-label">₹</span>)
-        </button>
-        <button type="button" id="modal-type-percentage" class="type-toggle-btn">
-          % of Total Income
-        </button>
+      <div id="modal-spend-type-row" class="modal-form-group">
+        <label class="modal-field-label">
+          <span class="label-icon-badge text-rose">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><path d="M16 12l-4-4-4 4M12 16V8"></path></svg>
+          </span>
+          <span class="label-text">Value Allocation Type</span>
+        </label>
+        <div class="type-toggle-row modal-type-toggle">
+          <button type="button" id="modal-type-fixed" class="type-toggle-btn active">
+            Fixed Amount (<span class="currency-symbol-label">₹</span>)
+          </button>
+          <button type="button" id="modal-type-percentage" class="type-toggle-btn">
+            % of Total Income
+          </button>
+        </div>
       </div>
 
       <div class="form-row">
         <!-- Amount Input Container -->
-        <div class="form-group flex-2" id="modal-amount-container">
-          <label class="field-label" id="modal-amount-label">Amount (<span class="currency-symbol-label">₹</span>)</label>
-          <input type="number" step="any" min="0" id="modal-input-amount" class="card-input modal-field" placeholder="0">
+        <div class="modal-form-group flex-2" id="modal-amount-container">
+          <label class="modal-field-label" id="modal-amount-label">
+            <span class="label-icon-badge text-emerald">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+            </span>
+            <span class="label-text">Amount (<span class="currency-symbol-label">₹</span>)</span>
+          </label>
+          <div class="modal-input-wrapper">
+            <input type="number" step="any" min="0" id="modal-input-amount" class="card-input modal-field" placeholder="0">
+          </div>
         </div>
 
         <!-- Percentage Input Container (hidden by default) -->
-        <div class="form-group flex-2 hidden" id="modal-percentage-container">
-          <label class="field-label">Percentage (% of Income)</label>
-          <div class="input-with-suffix">
+        <div class="modal-form-group flex-2 hidden" id="modal-percentage-container">
+          <label class="modal-field-label">
+            <span class="label-icon-badge text-rose">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="7.5" cy="7.5" r="2.5"></circle><circle cx="16.5" cy="16.5" r="2.5"></circle><line x1="6" y1="18" x2="18" y2="6"></line></svg>
+            </span>
+            <span class="label-text">Income Share (%)</span>
+          </label>
+          <div class="modal-input-wrapper input-with-suffix">
             <input type="number" step="0.5" min="0" max="100" id="modal-input-percentage" class="card-input modal-field" placeholder="20">
             <span class="input-suffix">%</span>
           </div>
         </div>
 
         <!-- Frequency Cycle Dropdown -->
-        <div class="form-group flex-2" id="modal-cycle-container">
-          <label class="field-label" for="modal-select-cycle">Cycle Frequency</label>
-          <select id="modal-select-cycle" class="card-select modal-field">
-            <option value="daily">Daily</option>
-            <option value="weekly">Weekly</option>
-            <option value="monthly">Monthly</option>
-            <option value="quarterly">Quarterly</option>
-            <option value="biannual">Bi-Annual (6m)</option>
-            <option value="annual">Annual (1yr)</option>
-            <option value="onetime">One-Time</option>
-          </select>
+        <div class="modal-form-group flex-2" id="modal-cycle-container">
+          <label class="modal-field-label" for="modal-select-cycle">
+            <span class="label-icon-badge text-purple">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+            </span>
+            <span class="label-text">Frequency Cycle</span>
+          </label>
+          <div class="modal-input-wrapper select-wrapper">
+            <select id="modal-select-cycle" class="card-select modal-field">
+              <option value="daily">Daily</option>
+              <option value="weekly">Weekly</option>
+              <option value="monthly">Monthly</option>
+              <option value="quarterly">Quarterly</option>
+              <option value="biannual">Bi-Annual (6m)</option>
+              <option value="annual">Annual (1yr)</option>
+              <option value="onetime">One-Time</option>
+            </select>
+            <div class="select-chevron">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </div>
+          </div>
         </div>
       </div>
 
       <!-- Hashtags Input -->
-      <div class="form-group">
-        <label class="field-label" for="modal-input-tags">Hashtags <span class="subtext">(space separated, e.g. #salary #fixed)</span></label>
-        <input type="text" id="modal-input-tags" class="card-input modal-field" placeholder="#essentials #monthly">
+      <div class="modal-form-group">
+        <label class="modal-field-label" for="modal-input-tags">
+          <span class="label-icon-badge text-cyan">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="4" y1="9" x2="20" y2="9"></line><line x1="4" y1="15" x2="20" y2="15"></line><line x1="10" y1="3" x2="8" y2="21"></line><line x1="16" y1="3" x2="14" y2="21"></line></svg>
+          </span>
+          <span class="label-text">Hashtags</span>
+          <span class="label-pill-sub">space separated</span>
+        </label>
+        <div class="modal-input-wrapper">
+          <input type="text" id="modal-input-tags" class="card-input modal-field" placeholder="#salary #fixed #essentials">
+        </div>
       </div>
 
       <!-- Live Preview Bar inside modal -->
       <div class="modal-preview-bar">
-        <span class="preview-label">Normalized Impact:</span>
-        <span class="preview-val" id="modal-preview-impact">₹0 /mo</span>
+        <div class="preview-left">
+          <span class="preview-pulse-dot"></span>
+          <span class="preview-label">Normalized Impact</span>
+        </div>
+        <span class="preview-val" id="modal-preview-impact">₹0 /mo • ₹0 /yr</span>
       </div>
     </div>
 
