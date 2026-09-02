@@ -41,6 +41,38 @@
   --shadow-glow: 0 0 20px rgba(99, 102, 241, 0.25);
 }
 
+/* Light Theme Variables */
+[data-theme="light"] {
+  --bg-main: #f8fafc;
+  --bg-card: #ffffff;
+  --bg-card-hover: #f1f5f9;
+  --bg-input: #ffffff;
+  --border-subtle: rgba(0, 0, 0, 0.08);
+  --border-focus: rgba(99, 102, 241, 0.6);
+  
+  --primary-blue: #0284c7;
+  --primary-indigo: #4f46e5;
+  --primary-purple: #9333ea;
+  
+  --earn-accent: #0284c7;
+  --earn-bg: rgba(2, 132, 199, 0.08);
+  --earn-border: rgba(2, 132, 199, 0.2);
+  
+  --spend-accent: #e11d48;
+  --spend-bg: rgba(225, 29, 72, 0.08);
+  --spend-border: rgba(225, 29, 72, 0.2);
+  
+  --emerald-accent: #059669;
+  --emerald-bg: rgba(5, 150, 105, 0.08);
+  --emerald-border: rgba(5, 150, 105, 0.25);
+
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #64748b;
+  
+  --shadow-card: 0 4px 20px -2px rgba(0, 0, 0, 0.06), 0 2px 6px -1px rgba(0, 0, 0, 0.04);
+}
+
 /* Reset & Box Sizing */
 *, *::before, *::after {
   box-sizing: border-box;
@@ -333,6 +365,26 @@ html, body {
   color: var(--text-secondary);
 }
 
+.btn-section-view-toggle {
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  border: 1px solid var(--border-subtle);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-secondary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s;
+  padding: 0;
+}
+.btn-section-view-toggle:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
 .section-summary-right {
   display: flex;
   align-items: center;
@@ -388,6 +440,157 @@ html, body {
 .cards-horizontal-scroll::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.12);
   border-radius: 4px;
+}
+
+/* Vertical Compact List Mode (fits same half screen, scrolls smoothly) */
+.cards-vertical-scroll {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 2px 4px 6px 2px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.cards-vertical-scroll::-webkit-scrollbar {
+  width: 3px;
+}
+.cards-vertical-scroll::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.02);
+}
+.cards-vertical-scroll::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+}
+
+/* Finance List Row (Compact Minimalist View) */
+.finance-list-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 7px 10px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  gap: 8px;
+  flex-shrink: 0;
+}
+.finance-list-row:hover {
+  background: var(--bg-card-hover);
+  border-color: rgba(255, 255, 255, 0.18);
+  transform: translateX(2px);
+}
+
+.earning-list-row {
+  border-left: 3px solid var(--earn-accent);
+}
+.spending-list-row {
+  border-left: 3px solid var(--spend-accent);
+}
+
+.list-row-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow: hidden;
+  flex: 1;
+}
+
+.list-row-edit-icon {
+  width: 22px;
+  height: 22px;
+  border-radius: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+.finance-list-row:hover .list-row-edit-icon {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
+}
+
+.list-row-info {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.list-row-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.list-row-tags {
+  font-size: 9.5px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 1px;
+}
+
+.list-row-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  flex-shrink: 0;
+}
+
+.list-row-amount {
+  font-size: 13.5px;
+  font-weight: 800;
+  letter-spacing: -0.2px;
+}
+.earning-list-row .list-row-amount {
+  color: var(--earn-accent);
+}
+.spending-list-row .list-row-amount {
+  color: var(--spend-accent);
+}
+
+.list-row-sub {
+  font-size: 9px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+/* Add Item List Row */
+.finance-list-row.add-list-row {
+  border: 1px dashed rgba(56, 189, 248, 0.35);
+  background: rgba(56, 189, 248, 0.02);
+  justify-content: center;
+  padding: 8px 12px;
+  gap: 6px;
+}
+.finance-list-row.add-list-row:hover {
+  background: rgba(56, 189, 248, 0.08);
+  border-color: var(--earn-accent);
+  transform: none;
+}
+.finance-list-row.spend-add-list-row {
+  border-color: rgba(244, 63, 94, 0.35);
+  background: rgba(244, 63, 94, 0.02);
+}
+.finance-list-row.spend-add-list-row:hover {
+  background: rgba(244, 63, 94, 0.08);
+  border-color: var(--spend-accent);
+}
+
+.add-list-label {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--text-primary);
 }
 
 /* Sleek Summary Block Card (Compact Height) */

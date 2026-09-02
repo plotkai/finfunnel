@@ -58,6 +58,15 @@ class FinFunnelApp {
     this.netStatusEl = document.getElementById('net-status-badge');
     this.netSavingsPctEl = document.getElementById('net-savings-rate');
 
+    // View Mode Toggles (Carousel vs Vertical List)
+    this.btnEarningsViewToggle = document.getElementById('btn-earnings-view-toggle');
+    this.btnSpendingsViewToggle = document.getElementById('btn-spendings-view-toggle');
+
+    // Theme Switcher Elements
+    this.btnThemeToggle = document.getElementById('btn-theme-toggle');
+    this.themeIconSun = this.btnThemeToggle?.querySelector('.theme-icon-sun');
+    this.themeIconMoon = this.btnThemeToggle?.querySelector('.theme-icon-moon');
+
     // Period Selector
     this.btnPeriodDropdown = document.getElementById('btn-period-dropdown');
     this.periodDropdownMenu = document.getElementById('period-dropdown-menu');
@@ -102,9 +111,44 @@ class FinFunnelApp {
     if (this.currencySelect) {
       this.currencySelect.value = this.state.currency || '₹';
     }
+
+    // Apply saved theme
+    this.applyTheme(this.state.theme || 'dark');
+  }
+
+  applyTheme(theme) {
+    this.state.theme = theme;
+    document.documentElement.setAttribute('data-theme', theme);
+    const isDark = theme === 'dark';
+    if (this.themeIconSun) this.themeIconSun.classList.toggle('hidden', !isDark);
+    if (this.themeIconMoon) this.themeIconMoon.classList.toggle('hidden', isDark);
   }
 
   initEvents() {
+    // Theme Switcher Button
+    if (this.btnThemeToggle) {
+      this.btnThemeToggle.addEventListener('click', () => {
+        const nextTheme = this.state.theme === 'dark' ? 'light' : 'dark';
+        this.applyTheme(nextTheme);
+        this.saveAndRender();
+        this.showToast(`Switched to ${nextTheme === 'dark' ? 'Dark' : 'Light'} Theme`);
+      });
+    }
+
+    // Section View Toggles (Carousel vs Vertical List)
+    if (this.btnEarningsViewToggle) {
+      this.btnEarningsViewToggle.addEventListener('click', () => {
+        this.state.earningsView = (this.state.earningsView === 'list') ? 'carousel' : 'list';
+        this.saveAndRender();
+      });
+    }
+
+    if (this.btnSpendingsViewToggle) {
+      this.btnSpendingsViewToggle.addEventListener('click', () => {
+        this.state.spendingsView = (this.state.spendingsView === 'list') ? 'carousel' : 'list';
+        this.saveAndRender();
+      });
+    }
     // Period Dropdown Toggle
     if (this.btnPeriodDropdown && this.periodDropdownMenu) {
       this.btnPeriodDropdown.addEventListener('click', (e) => {
@@ -485,126 +529,241 @@ class FinFunnelApp {
     if (!this.earningsListEl) return;
     this.earningsListEl.innerHTML = '';
 
-    this.state.earnings.forEach((earn, index) => {
-      const norm = totals.earningsMap[earn.id] || { monthly: 0, annual: 0 };
-      const mainAmount = isAnnual ? norm.annual : norm.monthly;
-      const subAmount = isAnnual ? `${formatMoney(norm.monthly, currency)}/mo` : `${formatMoney(norm.annual, currency)}/yr`;
+    const isList = this.state.earningsView === 'list';
+    this.earningsListEl.className = isList ? 'cards-vertical-scroll' : 'cards-horizontal-scroll';
 
-      const card = document.createElement('div');
-      card.className = 'finance-card earning-card';
-      card.dataset.id = earn.id;
+    // Update View Toggle Icon
+    if (this.btnEarningsViewToggle) {
+      this.btnEarningsViewToggle.querySelector('.view-icon-cards')?.classList.toggle('hidden', isList);
+      this.btnEarningsViewToggle.querySelector('.view-icon-list')?.classList.toggle('hidden', !isList);
+      this.btnEarningsViewToggle.title = isList ? 'Switch to Cards View' : 'Switch to Vertical List View';
+    }
 
-      card.innerHTML = `
-        <div class="card-top-row">
-          <span class="card-badge">#${index + 1} Inflow</span>
-          <span class="card-cycle-pill">${earn.cycle || 'monthly'}</span>
-          <button type="button" class="btn-icon btn-card-edit" title="Edit Earning" aria-label="Edit">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-          </button>
-        </div>
+    if (isList) {
+      // Render Vertical List Rows
+      this.state.earnings.forEach((earn, index) => {
+        const norm = totals.earningsMap[earn.id] || { monthly: 0, annual: 0 };
+        const mainAmount = isAnnual ? norm.annual : norm.monthly;
+        const subAmount = isAnnual ? `${formatMoney(norm.monthly, currency)}/mo` : `${formatMoney(norm.annual, currency)}/yr`;
 
-        <div class="card-title-text" title="${this.escapeHTML(earn.name || 'Untitled')}">
-          ${this.escapeHTML(earn.name || 'Untitled Earning')}
-        </div>
+        const row = document.createElement('div');
+        row.className = 'finance-list-row earning-list-row';
+        row.dataset.id = earn.id;
 
-        <div class="card-main-amount">
-          ${formatMoney(mainAmount, currency)}
-        </div>
-
-        <div class="card-bottom-row">
-          <div class="card-tag-pills">
-            ${(earn.tags || []).map(t => `<span class="tag-pill">${this.escapeHTML(t)}</span>`).join('')}
+        row.innerHTML = `
+          <div class="list-row-left">
+            <div class="list-row-edit-icon" title="Edit Earning">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+            </div>
+            <div class="list-row-info">
+              <span class="list-row-title">${this.escapeHTML(earn.name || 'Untitled Earning')}</span>
+              <span class="list-row-tags">${(earn.tags && earn.tags.length > 0) ? earn.tags.map(t => this.escapeHTML(t)).join(' ') : `#inflow`} • ${earn.cycle || 'monthly'}</span>
+            </div>
           </div>
-          <span class="card-norm-sub">${subAmount}</span>
-        </div>
-      `;
+          <div class="list-row-right">
+            <span class="list-row-amount">${formatMoney(mainAmount, currency)}</span>
+            <span class="list-row-sub">${subAmount}</span>
+          </div>
+        `;
 
-      // Tap card or edit button to open Edit Modal
-      card.addEventListener('click', () => {
-        this.openEditModal('earning', earn);
+        row.addEventListener('click', () => {
+          this.openEditModal('earning', earn);
+        });
+
+        this.earningsListEl.appendChild(row);
       });
 
-      this.earningsListEl.appendChild(card);
-    });
+      // Add Earning Row in List Mode
+      const addRow = document.createElement('div');
+      addRow.className = 'finance-list-row add-list-row';
+      addRow.innerHTML = `
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+        <span class="add-list-label">+ Add Earning</span>
+      `;
+      addRow.addEventListener('click', () => this.openNewItemModal('earning'));
+      this.earningsListEl.appendChild(addRow);
 
-    // Add Earning Block Card
-    const addCard = document.createElement('div');
-    addCard.className = 'finance-card add-card-block';
-    addCard.innerHTML = `
-      <div class="add-card-content">
-        <div class="add-icon-circle">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+    } else {
+      // Render Horizontal Cards
+      this.state.earnings.forEach((earn, index) => {
+        const norm = totals.earningsMap[earn.id] || { monthly: 0, annual: 0 };
+        const mainAmount = isAnnual ? norm.annual : norm.monthly;
+        const subAmount = isAnnual ? `${formatMoney(norm.monthly, currency)}/mo` : `${formatMoney(norm.annual, currency)}/yr`;
+
+        const card = document.createElement('div');
+        card.className = 'finance-card earning-card';
+        card.dataset.id = earn.id;
+
+        card.innerHTML = `
+          <div class="card-top-row">
+            <span class="card-badge">#${index + 1} Inflow</span>
+            <span class="card-cycle-pill">${earn.cycle || 'monthly'}</span>
+            <button type="button" class="btn-icon btn-card-edit" title="Edit Earning" aria-label="Edit">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+            </button>
+          </div>
+
+          <div class="card-title-text" title="${this.escapeHTML(earn.name || 'Untitled')}">
+            ${this.escapeHTML(earn.name || 'Untitled Earning')}
+          </div>
+
+          <div class="card-main-amount">
+            ${formatMoney(mainAmount, currency)}
+          </div>
+
+          <div class="card-bottom-row">
+            <div class="card-tag-pills">
+              ${(earn.tags || []).map(t => `<span class="tag-pill">${this.escapeHTML(t)}</span>`).join('')}
+            </div>
+            <span class="card-norm-sub">${subAmount}</span>
+          </div>
+        `;
+
+        card.addEventListener('click', () => {
+          this.openEditModal('earning', earn);
+        });
+
+        this.earningsListEl.appendChild(card);
+      });
+
+      // Add Earning Block Card
+      const addCard = document.createElement('div');
+      addCard.className = 'finance-card add-card-block';
+      addCard.innerHTML = `
+        <div class="add-card-content">
+          <div class="add-icon-circle">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          </div>
+          <span class="add-card-title">+ Add Earning</span>
+          <span class="add-card-sub">Salary, Dividend</span>
         </div>
-        <span class="add-card-title">+ Add Earning</span>
-        <span class="add-card-sub">Salary, Dividend</span>
-      </div>
-    `;
-    addCard.addEventListener('click', () => this.openNewItemModal('earning'));
-    this.earningsListEl.appendChild(addCard);
+      `;
+      addCard.addEventListener('click', () => this.openNewItemModal('earning'));
+      this.earningsListEl.appendChild(addCard);
+    }
   }
 
   renderSpendingsCards(totals, isAnnual, currency) {
     if (!this.spendingsListEl) return;
     this.spendingsListEl.innerHTML = '';
 
-    this.state.spendings.forEach((spend, index) => {
-      const norm = totals.spendingsMap[spend.id] || { monthly: 0, annual: 0 };
-      const mainAmount = isAnnual ? norm.annual : norm.monthly;
-      const subAmount = isAnnual ? `${formatMoney(norm.monthly, currency)}/mo` : `${formatMoney(norm.annual, currency)}/yr`;
+    const isList = this.state.spendingsView === 'list';
+    this.spendingsListEl.className = isList ? 'cards-vertical-scroll' : 'cards-horizontal-scroll';
 
-      const isPercentage = spend.type === 'percentage';
-      const cycleBadgeText = isPercentage ? `${spend.percentage || 0}% of Income` : (spend.cycle || 'monthly');
+    // Update View Toggle Icon
+    if (this.btnSpendingsViewToggle) {
+      this.btnSpendingsViewToggle.querySelector('.view-icon-cards')?.classList.toggle('hidden', isList);
+      this.btnSpendingsViewToggle.querySelector('.view-icon-list')?.classList.toggle('hidden', !isList);
+      this.btnSpendingsViewToggle.title = isList ? 'Switch to Cards View' : 'Switch to Vertical List View';
+    }
 
-      const card = document.createElement('div');
-      card.className = 'finance-card spending-card';
-      card.dataset.id = spend.id;
+    if (isList) {
+      // Render Vertical List Rows
+      this.state.spendings.forEach((spend, index) => {
+        const norm = totals.spendingsMap[spend.id] || { monthly: 0, annual: 0 };
+        const mainAmount = isAnnual ? norm.annual : norm.monthly;
+        const subAmount = isAnnual ? `${formatMoney(norm.monthly, currency)}/mo` : `${formatMoney(norm.annual, currency)}/yr`;
+        const isPercentage = spend.type === 'percentage';
+        const cycleBadgeText = isPercentage ? `${spend.percentage || 0}% of Income` : (spend.cycle || 'monthly');
 
-      card.innerHTML = `
-        <div class="card-top-row">
-          <span class="card-badge spend-badge">#${index + 1} Outflow</span>
-          <span class="card-cycle-pill ${isPercentage ? 'pct-pill' : ''}">${cycleBadgeText}</span>
-          <button type="button" class="btn-icon btn-card-edit" title="Edit Spending" aria-label="Edit">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-          </button>
-        </div>
+        const row = document.createElement('div');
+        row.className = 'finance-list-row spending-list-row';
+        row.dataset.id = spend.id;
 
-        <div class="card-title-text" title="${this.escapeHTML(spend.name || 'Untitled')}">
-          ${this.escapeHTML(spend.name || 'Untitled Spending')}
-        </div>
-
-        <div class="card-main-amount">
-          ${formatMoney(mainAmount, currency)}
-        </div>
-
-        <div class="card-bottom-row">
-          <div class="card-tag-pills">
-            ${(spend.tags || []).map(t => `<span class="tag-pill spend-tag-pill">${this.escapeHTML(t)}</span>`).join('')}
+        row.innerHTML = `
+          <div class="list-row-left">
+            <div class="list-row-edit-icon" title="Edit Spending">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+            </div>
+            <div class="list-row-info">
+              <span class="list-row-title">${this.escapeHTML(spend.name || 'Untitled Spending')}</span>
+              <span class="list-row-tags">${(spend.tags && spend.tags.length > 0) ? spend.tags.map(t => this.escapeHTML(t)).join(' ') : `#outflow`} • ${cycleBadgeText}</span>
+            </div>
           </div>
-          <span class="card-norm-sub">${subAmount}</span>
-        </div>
-      `;
+          <div class="list-row-right">
+            <span class="list-row-amount">${formatMoney(mainAmount, currency)}</span>
+            <span class="list-row-sub">${subAmount}</span>
+          </div>
+        `;
 
-      card.addEventListener('click', () => {
-        this.openEditModal('spending', spend);
+        row.addEventListener('click', () => {
+          this.openEditModal('spending', spend);
+        });
+
+        this.spendingsListEl.appendChild(row);
       });
 
-      this.spendingsListEl.appendChild(card);
-    });
+      // Add Spending Row in List Mode
+      const addRow = document.createElement('div');
+      addRow.className = 'finance-list-row add-list-row spend-add-list-row';
+      addRow.innerHTML = `
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+        <span class="add-list-label">+ Add Spending</span>
+      `;
+      addRow.addEventListener('click', () => this.openNewItemModal('spending'));
+      this.spendingsListEl.appendChild(addRow);
 
-    // Add Spending Block Card
-    const addCard = document.createElement('div');
-    addCard.className = 'finance-card add-card-block spend-add-block';
-    addCard.innerHTML = `
-      <div class="add-card-content">
-        <div class="add-icon-circle spend-add-circle">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+    } else {
+      // Render Horizontal Cards
+      this.state.spendings.forEach((spend, index) => {
+        const norm = totals.spendingsMap[spend.id] || { monthly: 0, annual: 0 };
+        const mainAmount = isAnnual ? norm.annual : norm.monthly;
+        const subAmount = isAnnual ? `${formatMoney(norm.monthly, currency)}/mo` : `${formatMoney(norm.annual, currency)}/yr`;
+
+        const isPercentage = spend.type === 'percentage';
+        const cycleBadgeText = isPercentage ? `${spend.percentage || 0}% of Income` : (spend.cycle || 'monthly');
+
+        const card = document.createElement('div');
+        card.className = 'finance-card spending-card';
+        card.dataset.id = spend.id;
+
+        card.innerHTML = `
+          <div class="card-top-row">
+            <span class="card-badge spend-badge">#${index + 1} Outflow</span>
+            <span class="card-cycle-pill ${isPercentage ? 'pct-pill' : ''}">${cycleBadgeText}</span>
+            <button type="button" class="btn-icon btn-card-edit" title="Edit Spending" aria-label="Edit">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+            </button>
+          </div>
+
+          <div class="card-title-text" title="${this.escapeHTML(spend.name || 'Untitled')}">
+            ${this.escapeHTML(spend.name || 'Untitled Spending')}
+          </div>
+
+          <div class="card-main-amount">
+            ${formatMoney(mainAmount, currency)}
+          </div>
+
+          <div class="card-bottom-row">
+            <div class="card-tag-pills">
+              ${(spend.tags || []).map(t => `<span class="tag-pill spend-tag-pill">${this.escapeHTML(t)}</span>`).join('')}
+            </div>
+            <span class="card-norm-sub">${subAmount}</span>
+          </div>
+        `;
+
+        card.addEventListener('click', () => {
+          this.openEditModal('spending', spend);
+        });
+
+        this.spendingsListEl.appendChild(card);
+      });
+
+      // Add Spending Block Card
+      const addCard = document.createElement('div');
+      addCard.className = 'finance-card add-card-block spend-add-block';
+      addCard.innerHTML = `
+        <div class="add-card-content">
+          <div class="add-icon-circle spend-add-circle">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          </div>
+          <span class="add-card-title">+ Add Spending</span>
+          <span class="add-card-sub">Fixed or % of income</span>
         </div>
-        <span class="add-card-title">+ Add Spending</span>
-        <span class="add-card-sub">Fixed or % of income</span>
-      </div>
-    `;
-    addCard.addEventListener('click', () => this.openNewItemModal('spending'));
-    this.spendingsListEl.appendChild(addCard);
+      `;
+      addCard.addEventListener('click', () => this.openNewItemModal('spending'));
+      this.spendingsListEl.appendChild(addCard);
+    }
   }
 
   // Edit / Add Modal Management
