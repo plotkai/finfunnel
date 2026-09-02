@@ -829,7 +829,7 @@ html, body {
 .settlement-card {
   position: relative;
   z-index: 2;
-  background: rgba(18, 26, 43, 0.9);
+  background: var(--bg-card);
   backdrop-filter: blur(20px);
   border: 1px solid var(--emerald-border);
   border-radius: var(--radius-md);
@@ -837,13 +837,13 @@ html, body {
   display: flex;
   align-items: center;
   gap: 16px;
-  box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.5), 0 0 15px rgba(16, 185, 129, 0.15);
+  box-shadow: var(--shadow-card), 0 0 15px rgba(16, 185, 129, 0.15);
   transition: all 0.2s;
 }
 
 .settlement-card:hover {
   border-color: rgba(16, 185, 129, 0.5);
-  box-shadow: 0 10px 28px -4px rgba(0, 0, 0, 0.6), 0 0 20px rgba(16, 185, 129, 0.25);
+  box-shadow: 0 10px 28px -4px rgba(0, 0, 0, 0.15), 0 0 20px rgba(16, 185, 129, 0.25);
 }
 
 .settlement-icon-circle {
@@ -857,6 +857,11 @@ html, body {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+}
+
+.earnings-bottom-header {
+  margin-top: 4px;
+  margin-bottom: 2px;
 }
 
 .settlement-info {
@@ -1669,6 +1674,107 @@ html, body {
 .text-emerald { color: var(--emerald-accent); }
 .text-danger { color: #f87171; }
 .hidden { display: none !important; }
+
+/* Light Theme Component Overrides */
+[data-theme="light"] .app-viewport {
+  background: radial-gradient(circle at 50% 0%, rgba(2, 132, 199, 0.08) 0%, transparent 50%),
+              radial-gradient(circle at 50% 100%, rgba(225, 29, 72, 0.06) 0%, transparent 40%),
+              #f8fafc;
+  border-color: rgba(0, 0, 0, 0.08);
+  box-shadow: 0 0 40px rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="light"] .app-header {
+  background: rgba(255, 255, 255, 0.9);
+  border-bottom-color: rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] .brand-title {
+  background: linear-gradient(135deg, #0f172a 40%, #334155 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+[data-theme="light"] .btn-icon {
+  background: rgba(0, 0, 0, 0.03);
+  border-color: rgba(0, 0, 0, 0.08);
+  color: #475569;
+}
+[data-theme="light"] .btn-icon:hover {
+  background: rgba(0, 0, 0, 0.06);
+  color: #0f172a;
+}
+
+[data-theme="light"] .side-drawer {
+  background: #ffffff;
+  border-right-color: rgba(0, 0, 0, 0.08);
+  box-shadow: 10px 0 30px rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="light"] .period-dropdown-menu {
+  background: #ffffff;
+  border-color: rgba(0, 0, 0, 0.1);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+}
+
+[data-theme="light"] .period-opt-badge {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="light"] .period-option-btn:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="light"] .app-modal {
+  background: #ffffff;
+  border-color: rgba(0, 0, 0, 0.12);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15);
+}
+
+[data-theme="light"] .modal-input-wrapper {
+  background: #f8fafc;
+  border-color: rgba(0, 0, 0, 0.12);
+}
+[data-theme="light"] .modal-input-wrapper:hover {
+  background: #f1f5f9;
+}
+[data-theme="light"] .modal-field {
+  color: #0f172a;
+}
+[data-theme="light"] .modal-field-label {
+  color: #334155;
+}
+
+[data-theme="light"] .edit-modal-footer {
+  background: #f8fafc;
+  border-top-color: rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] .btn-action-outline {
+  background: #ffffff;
+  border-color: rgba(0, 0, 0, 0.12);
+  color: #475569;
+}
+
+[data-theme="light"] .analytics-sub-section,
+[data-theme="light"] .summary-metric-card,
+[data-theme="light"] .chart-legend-row {
+  background: rgba(0, 0, 0, 0.02);
+  border-color: rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="light"] .bar-track {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="light"] .settlement-card {
+  background: #ffffff;
+  border-color: rgba(5, 150, 105, 0.35);
+  box-shadow: 0 4px 20px rgba(5, 150, 105, 0.12), 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+[data-theme="light"] .settlement-card:hover {
+  box-shadow: 0 6px 24px rgba(5, 150, 105, 0.2), 0 4px 12px rgba(0, 0, 0, 0.06);
+}
 
 /* App Toast */
 .app-toast {

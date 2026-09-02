@@ -105,7 +105,13 @@
       <!-- ================= UPPER HALF: EARNINGS ================= -->
       <section class="flow-half-section earnings-half">
         
-        <div class="section-meta-header">
+        <!-- Scrollable Cards / List Container for Earnings (Top) -->
+        <div class="cards-horizontal-scroll" id="earnings-cards-container">
+          <!-- Rendered dynamically via js/app.js -->
+        </div>
+
+        <!-- Earnings Meta Header Bar (Bottom of Upper Half, right above Settlement Node) -->
+        <div class="section-meta-header earnings-bottom-header">
           <div class="section-title-group">
             <div class="section-icon-pill">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -136,11 +142,6 @@
               </svg>
             </button>
           </div>
-        </div>
-
-        <!-- Scrollable Cards / List Container for Earnings -->
-        <div class="cards-horizontal-scroll" id="earnings-cards-container">
-          <!-- Rendered dynamically via js/app.js -->
         </div>
 
       </section>
