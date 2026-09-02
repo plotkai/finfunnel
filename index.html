@@ -148,22 +148,27 @@
 
       <!-- ================= CENTER FUNNEL / NET SETTLEMENT NODE ================= -->
       <div class="center-flow-bridge">
-        <!-- Connecting Fluid Streams -->
-        <svg class="funnel-svg-connector" viewBox="0 0 400 100" preserveAspectRatio="none">
+        <!-- Connecting Side Fluid Wings (Left & Right only, zero text overlap) -->
+        <svg class="funnel-svg-connector" viewBox="0 0 400 80" preserveAspectRatio="none">
           <defs>
-            <linearGradient id="streamInflow" x1="0%" y1="0%" x2="0%" y2="100%">
+            <linearGradient id="streamLeft" x1="0%" y1="0%" x2="100%" y2="0%">
               <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.3" />
-              <stop offset="100%" stop-color="#10b981" stop-opacity="0.4" />
+              <stop offset="100%" stop-color="#10b981" stop-opacity="0.7" />
             </linearGradient>
-            <linearGradient id="streamOutflow" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stop-color="#10b981" stop-opacity="0.4" />
+            <linearGradient id="streamRight" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stop-color="#10b981" stop-opacity="0.7" />
               <stop offset="100%" stop-color="#f43f5e" stop-opacity="0.3" />
             </linearGradient>
           </defs>
-          <!-- Top Funnel Stream into Center Node -->
-          <path d="M 40 0 C 120 0, 150 40, 200 40 C 250 40, 280 0, 360 0" fill="none" stroke="url(#streamInflow)" stroke-width="2" stroke-dasharray="4 4" />
-          <!-- Center Node Outflow into Bottom Half -->
-          <path d="M 40 100 C 120 100, 150 60, 200 60 C 250 60, 280 100, 360 100" fill="none" stroke="url(#streamOutflow)" stroke-width="2" stroke-dasharray="4 4" />
+          <!-- Left Inflow Side Wings -->
+          <path d="M 0 40 C 40 40, 70 40, 95 40" fill="none" stroke="url(#streamLeft)" stroke-width="2.5" stroke-linecap="round" />
+          <path d="M 0 25 C 40 25, 65 35, 95 38" fill="none" stroke="url(#streamLeft)" stroke-width="1.5" stroke-dasharray="3 3" opacity="0.6" />
+          <path d="M 0 55 C 40 55, 65 45, 95 42" fill="none" stroke="url(#streamLeft)" stroke-width="1.5" stroke-dasharray="3 3" opacity="0.6" />
+
+          <!-- Right Outflow Side Wings -->
+          <path d="M 305 40 C 335 40, 360 40, 400 40" fill="none" stroke="url(#streamRight)" stroke-width="2.5" stroke-linecap="round" />
+          <path d="M 305 38 C 335 35, 360 25, 400 25" fill="none" stroke="url(#streamRight)" stroke-width="1.5" stroke-dasharray="3 3" opacity="0.6" />
+          <path d="M 305 42 C 335 45, 360 55, 400 55" fill="none" stroke="url(#streamRight)" stroke-width="1.5" stroke-dasharray="3 3" opacity="0.6" />
         </svg>
 
         <!-- Net Settlement Card (Inspired by reference screenshot) -->
