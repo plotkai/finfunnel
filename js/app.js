@@ -10,6 +10,7 @@ class FinFunnelApp {
     this.state = Storage.load();
     this.deferredPrompt = null;
     this.activeAnalyticsModal = null; // 'earnings' | 'spendings' | 'global' | null
+    this.activeEditItem = null; // { type: 'earning'|'spending', isNew: boolean, data: item }
     
     this.initPWA();
     this.initDOM();
@@ -18,7 +19,6 @@ class FinFunnelApp {
   }
 
   initPWA() {
-    // Register Service Worker
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('./sw.js')
@@ -27,7 +27,6 @@ class FinFunnelApp {
       });
     }
 
-    // Capture install prompt
     window.addEventListener('beforeinstallprompt', (e) => {
       e.preventDefault();
       this.deferredPrompt = e;
@@ -44,7 +43,7 @@ class FinFunnelApp {
   }
 
   initDOM() {
-    // Main containers
+    // Containers
     this.earningsListEl = document.getElementById('earnings-cards-container');
     this.spendingsListEl = document.getElementById('spendings-cards-container');
     
@@ -59,8 +58,12 @@ class FinFunnelApp {
     this.netStatusEl = document.getElementById('net-status-badge');
     this.netSavingsPctEl = document.getElementById('net-savings-rate');
 
+    // Period Selector
+    this.btnPeriodDropdown = document.getElementById('btn-period-dropdown');
+    this.periodDropdownMenu = document.getElementById('period-dropdown-menu');
+    this.headerPeriodBadge = document.getElementById('header-period-badge');
+
     // Controls
-    this.viewModeToggle = document.getElementById('view-mode-toggle');
     this.currencySelect = document.getElementById('currency-select');
     
     // Drawers & Modals
@@ -68,20 +71,61 @@ class FinFunnelApp {
     this.menuOverlay = document.getElementById('drawer-overlay');
     this.analyticsModal = document.getElementById('analytics-modal');
     this.modalOverlay = document.getElementById('modal-overlay');
+    
+    // Edit Modal Elements
+    this.editModal = document.getElementById('edit-block-modal');
+    this.editModalOverlay = document.getElementById('edit-modal-overlay');
+    this.editModalTitle = document.getElementById('edit-modal-title');
+    this.editModalSubtitle = document.getElementById('edit-modal-subtitle');
+    this.modalInputName = document.getElementById('modal-input-name');
+    this.modalSpendTypeRow = document.getElementById('modal-spend-type-row');
+    this.modalTypeFixed = document.getElementById('modal-type-fixed');
+    this.modalTypePercentage = document.getElementById('modal-type-percentage');
+    this.modalAmountContainer = document.getElementById('modal-amount-container');
+    this.modalPercentageContainer = document.getElementById('modal-percentage-container');
+    this.modalCycleContainer = document.getElementById('modal-cycle-container');
+    this.modalInputAmount = document.getElementById('modal-input-amount');
+    this.modalInputPercentage = document.getElementById('modal-input-percentage');
+    this.modalSelectCycle = document.getElementById('modal-select-cycle');
+    this.modalInputTags = document.getElementById('modal-input-tags');
+    this.modalPreviewImpact = document.getElementById('modal-preview-impact');
+    this.btnModalDelete = document.getElementById('btn-modal-delete');
+    this.btnModalDuplicate = document.getElementById('btn-modal-duplicate');
+    this.btnModalSave = document.getElementById('btn-modal-save');
+    this.btnCloseEditModal = document.getElementById('btn-close-edit-modal');
+    
     this.fileImportInput = document.getElementById('file-import-input');
     
-    // Apply currency
+    // Currency labels in modal
+    this.currencySymbolLabels = document.querySelectorAll('.currency-symbol-label');
+    
     if (this.currencySelect) {
       this.currencySelect.value = this.state.currency || '₹';
     }
   }
 
   initEvents() {
-    // Toggle View Mode (Monthly vs Annual)
-    if (this.viewModeToggle) {
-      this.viewModeToggle.addEventListener('click', () => {
-        this.state.viewMode = this.state.viewMode === 'monthly' ? 'annual' : 'monthly';
-        this.saveAndRender();
+    // Period Dropdown Toggle
+    if (this.btnPeriodDropdown && this.periodDropdownMenu) {
+      this.btnPeriodDropdown.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.periodDropdownMenu.classList.toggle('open');
+      });
+
+      document.querySelectorAll('.period-option-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const mode = btn.dataset.period;
+          this.state.viewMode = mode;
+          this.periodDropdownMenu.classList.remove('open');
+          this.saveAndRender();
+        });
+      });
+
+      // Close dropdown on click outside
+      document.addEventListener('click', (e) => {
+        if (!this.periodDropdownMenu.contains(e.target) && e.target !== this.btnPeriodDropdown) {
+          this.periodDropdownMenu.classList.remove('open');
+        }
       });
     }
 
@@ -110,17 +154,63 @@ class FinFunnelApp {
       spendAnalyticsBtn.addEventListener('click', () => this.openAnalyticsModal('spendings'));
     }
 
-    // Close Modal
+    // Close Analytics Modal
     const closeModalBtn = document.getElementById('btn-close-modal');
-    if (closeModalBtn) closeModalBtn.addEventListener('click', () => this.closeModal());
-    if (this.modalOverlay) this.modalOverlay.addEventListener('click', () => this.closeModal());
+    if (closeModalBtn) closeModalBtn.addEventListener('click', () => this.closeAnalyticsModal());
+    if (this.modalOverlay) this.modalOverlay.addEventListener('click', () => this.closeAnalyticsModal());
 
-    // Add Block Buttons
-    const addEarnBtn = document.getElementById('btn-add-earning');
-    if (addEarnBtn) addEarnBtn.addEventListener('click', () => this.addEarningBlock());
+    // Edit Modal Events
+    if (this.btnCloseEditModal) {
+      this.btnCloseEditModal.addEventListener('click', () => this.closeEditModal());
+    }
+    if (this.editModalOverlay) {
+      this.editModalOverlay.addEventListener('click', () => this.closeEditModal());
+    }
 
-    const addSpendBtn = document.getElementById('btn-add-spending');
-    if (addSpendBtn) addSpendBtn.addEventListener('click', () => this.addSpendingBlock());
+    // Edit Modal Spend Type Toggle (Fixed vs %)
+    if (this.modalTypeFixed && this.modalTypePercentage) {
+      this.modalTypeFixed.addEventListener('click', () => {
+        if (this.activeEditItem) {
+          this.activeEditItem.data.type = 'fixed';
+          this.updateEditModalUI();
+        }
+      });
+      this.modalTypePercentage.addEventListener('click', () => {
+        if (this.activeEditItem) {
+          this.activeEditItem.data.type = 'percentage';
+          if (!this.activeEditItem.data.percentage) this.activeEditItem.data.percentage = 10;
+          this.updateEditModalUI();
+        }
+      });
+    }
+
+    // Live Impact Preview in Edit Modal on form input
+    const formFields = [this.modalInputAmount, this.modalInputPercentage, this.modalSelectCycle];
+    formFields.forEach(f => {
+      f?.addEventListener('input', () => this.updateModalLivePreview());
+      f?.addEventListener('change', () => this.updateModalLivePreview());
+    });
+
+    // Save Block
+    if (this.btnModalSave) {
+      this.btnModalSave.addEventListener('click', () => this.saveEditModal());
+    }
+
+    // Duplicate Block from Modal
+    if (this.btnModalDuplicate) {
+      this.btnModalDuplicate.addEventListener('click', () => {
+        if (!this.activeEditItem) return;
+        this.duplicateItemFromModal();
+      });
+    }
+
+    // Delete Block from Modal with smooth inline confirmation
+    if (this.btnModalDelete) {
+      this.btnModalDelete.addEventListener('click', () => {
+        if (!this.activeEditItem) return;
+        this.handleModalDelete();
+      });
+    }
 
     // Currency Selector
     if (this.currencySelect) {
@@ -205,7 +295,9 @@ class FinFunnelApp {
     window.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
         this.toggleDrawer(false);
-        this.closeModal();
+        this.closeAnalyticsModal();
+        this.closeEditModal();
+        this.periodDropdownMenu?.classList.remove('open');
       }
     });
   }
@@ -238,7 +330,7 @@ class FinFunnelApp {
     }, 2800);
   }
 
-  // Frequency normalization to monthly and annual values
+  // Normalization logic
   normalizeFrequency(amount, cycle) {
     const val = parseFloat(amount) || 0;
     switch (cycle) {
@@ -253,7 +345,6 @@ class FinFunnelApp {
       case 'annual':
         return { monthly: val / 12, annual: val };
       case 'onetime':
-        // Amortized over 1 year
         return { monthly: val / 12, annual: val };
       case 'monthly':
       default:
@@ -266,7 +357,6 @@ class FinFunnelApp {
     let totalEarningsAnnual = 0;
     const earningsMap = {};
 
-    // 1. Calculate Earnings Totals
     this.state.earnings.forEach(earn => {
       const norm = this.normalizeFrequency(earn.amount, earn.cycle);
       earningsMap[earn.id] = norm;
@@ -278,14 +368,12 @@ class FinFunnelApp {
     let totalSpendingsAnnual = 0;
     const spendingsMap = {};
 
-    // 2. Calculate Spendings Totals (handling fixed & dynamic percentage of income)
     this.state.spendings.forEach(spend => {
       let monthlyVal = 0;
       let annualVal = 0;
 
       if (spend.type === 'percentage') {
         const pct = (parseFloat(spend.percentage) || 0) / 100;
-        // Percentage of total earnings
         monthlyVal = totalEarningsMonthly * pct;
         annualVal = totalEarningsAnnual * pct;
       } else {
@@ -326,14 +414,20 @@ class FinFunnelApp {
     const currency = this.state.currency || '₹';
     const totals = this.calculateTotals();
 
-    // 1. Update View Toggle Button
-    if (this.viewModeToggle) {
-      const labelEl = this.viewModeToggle.querySelector('.toggle-active-label');
-      if (labelEl) labelEl.textContent = isAnnual ? 'Annual' : 'Monthly';
-      this.viewModeToggle.setAttribute('aria-pressed', isAnnual ? 'true' : 'false');
+    // 1. Update Header Period Selector Badge & Options
+    if (this.headerPeriodBadge) {
+      this.headerPeriodBadge.textContent = isAnnual ? 'A' : 'M';
     }
+    document.querySelectorAll('.period-option-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.period === this.state.viewMode);
+    });
 
-    // 2. Update Section Headers & Totals
+    // 2. Update Currency Labels in Modals
+    this.currencySymbolLabels.forEach(lbl => {
+      lbl.textContent = currency;
+    });
+
+    // 3. Update Section Headers & Totals
     const currentEarnTotal = isAnnual ? totals.totalEarningsAnnual : totals.totalEarningsMonthly;
     const currentSpendTotal = isAnnual ? totals.totalSpendingsAnnual : totals.totalSpendingsMonthly;
     const currentNetTotal = isAnnual ? totals.netAnnual : totals.netMonthly;
@@ -352,7 +446,7 @@ class FinFunnelApp {
       this.spendingsCycleLabelEl.textContent = isAnnual ? 'Total Annual Spending' : 'Total Monthly Spending';
     }
 
-    // 3. Update Net Settlement Node
+    // 4. Update Net Settlement Node
     if (this.netBalanceEl) {
       this.netBalanceEl.textContent = formatMoney(currentNetTotal, currency);
       this.netBalanceEl.classList.toggle('negative', currentNetTotal < 0);
@@ -375,347 +469,154 @@ class FinFunnelApp {
       this.netSavingsPctEl.classList.toggle('negative', totals.savingsRate < 0);
     }
 
-    // 4. Render Earnings Blocks (Horizontal Scroll Row)
-    this.renderEarningsBlocks(totals, isAnnual, currency);
+    // 5. Render Summary Block Cards (Earnings)
+    this.renderEarningsCards(totals, isAnnual, currency);
 
-    // 5. Render Spendings Blocks (Horizontal Scroll Row)
-    this.renderSpendingsBlocks(totals, isAnnual, currency);
+    // 6. Render Summary Block Cards (Spendings)
+    this.renderSpendingsCards(totals, isAnnual, currency);
 
-    // 6. Update Active Modal if open
+    // 7. Update Active Analytics Modal if open
     if (this.activeAnalyticsModal) {
       this.renderAnalyticsContent(this.activeAnalyticsModal, totals);
     }
   }
 
-  renderEarningsBlocks(totals, isAnnual, currency) {
+  renderEarningsCards(totals, isAnnual, currency) {
     if (!this.earningsListEl) return;
     this.earningsListEl.innerHTML = '';
 
     this.state.earnings.forEach((earn, index) => {
       const norm = totals.earningsMap[earn.id] || { monthly: 0, annual: 0 };
-      const normalizedDisplay = isAnnual 
-        ? `${formatMoney(norm.monthly, currency)}/mo` 
-        : `${formatMoney(norm.annual, currency)}/yr`;
+      const mainAmount = isAnnual ? norm.annual : norm.monthly;
+      const subAmount = isAnnual ? `${formatMoney(norm.monthly, currency)}/mo` : `${formatMoney(norm.annual, currency)}/yr`;
 
       const card = document.createElement('div');
       card.className = 'finance-card earning-card';
       card.dataset.id = earn.id;
 
       card.innerHTML = `
-        <div class="card-header">
-          <div class="card-badge">#${index + 1} Inflow</div>
-          <div class="card-actions">
-            <button type="button" class="btn-icon btn-card-action" data-action="duplicate-earn" title="Duplicate">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-            </button>
-            <button type="button" class="btn-icon btn-card-action text-danger" data-action="delete-earn" title="Delete">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18m-2 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-            </button>
-          </div>
+        <div class="card-top-row">
+          <span class="card-badge">#${index + 1} Inflow</span>
+          <span class="card-cycle-pill">${earn.cycle || 'monthly'}</span>
+          <button type="button" class="btn-icon btn-card-edit" title="Edit Earning" aria-label="Edit">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+          </button>
         </div>
 
-        <div class="card-body">
-          <div class="form-group">
-            <label class="field-label">Earning Name</label>
-            <input type="text" class="card-input input-name" placeholder="e.g. Salary, Dividend" value="${this.escapeHTML(earn.name || '')}">
-          </div>
+        <div class="card-title-text" title="${this.escapeHTML(earn.name || 'Untitled')}">
+          ${this.escapeHTML(earn.name || 'Untitled Earning')}
+        </div>
 
-          <div class="form-row">
-            <div class="form-group flex-2">
-              <label class="field-label">Amount (${currency})</label>
-              <input type="number" step="any" min="0" class="card-input input-amount" placeholder="0" value="${earn.amount !== undefined ? earn.amount : ''}">
-            </div>
-            <div class="form-group flex-2">
-              <label class="field-label">Cycle</label>
-              <select class="card-select select-cycle">
-                <option value="daily" ${earn.cycle === 'daily' ? 'selected' : ''}>Daily</option>
-                <option value="weekly" ${earn.cycle === 'weekly' ? 'selected' : ''}>Weekly</option>
-                <option value="monthly" ${earn.cycle === 'monthly' ? 'selected' : ''}>Monthly</option>
-                <option value="quarterly" ${earn.cycle === 'quarterly' ? 'selected' : ''}>Quarterly</option>
-                <option value="biannual" ${earn.cycle === 'biannual' ? 'selected' : ''}>Bi-Annual</option>
-                <option value="annual" ${earn.cycle === 'annual' ? 'selected' : ''}>Annual</option>
-                <option value="onetime" ${earn.cycle === 'onetime' ? 'selected' : ''}>One-Time</option>
-              </select>
-            </div>
-          </div>
+        <div class="card-main-amount">
+          ${formatMoney(mainAmount, currency)}
+        </div>
 
-          <div class="form-group">
-            <label class="field-label">Hashtags <span class="subtext">(space separated)</span></label>
-            <input type="text" class="card-input input-tags" placeholder="#salary #active" value="${(earn.tags || []).join(' ')}">
-          </div>
-
+        <div class="card-bottom-row">
           <div class="card-tag-pills">
             ${(earn.tags || []).map(t => `<span class="tag-pill">${this.escapeHTML(t)}</span>`).join('')}
           </div>
-        </div>
-
-        <div class="card-footer">
-          <span class="norm-label">Normalized:</span>
-          <span class="norm-value">${normalizedDisplay}</span>
+          <span class="card-norm-sub">${subAmount}</span>
         </div>
       `;
 
-      // Event listeners for immediate reactive update on inputs
-      const nameInput = card.querySelector('.input-name');
-      const amountInput = card.querySelector('.input-amount');
-      const cycleSelect = card.querySelector('.select-cycle');
-      const tagsInput = card.querySelector('.input-tags');
-
-      nameInput.addEventListener('input', (e) => {
-        earn.name = e.target.value;
-        Storage.save(this.state);
-      });
-
-      amountInput.addEventListener('input', (e) => {
-        earn.amount = parseFloat(e.target.value) || 0;
-        this.saveAndRender();
-      });
-
-      cycleSelect.addEventListener('change', (e) => {
-        earn.cycle = e.target.value;
-        this.saveAndRender();
-      });
-
-      tagsInput.addEventListener('blur', (e) => {
-        const raw = e.target.value.trim();
-        earn.tags = raw ? raw.split(/\s+/).map(t => t.startsWith('#') ? t : `#${t}`) : [];
-        this.saveAndRender();
-      });
-
-      // Actions
-      card.querySelector('[data-action="duplicate-earn"]').addEventListener('click', () => {
-        this.duplicateEarning(earn);
-      });
-
-      card.querySelector('[data-action="delete-earn"]').addEventListener('click', () => {
-        this.deleteEarning(earn.id);
+      // Tap card or edit button to open Edit Modal
+      card.addEventListener('click', () => {
+        this.openEditModal('earning', earn);
       });
 
       this.earningsListEl.appendChild(card);
     });
 
-    // Add Block Card at the end of horizontal row
+    // Add Earning Block Card
     const addCard = document.createElement('div');
     addCard.className = 'finance-card add-card-block';
     addCard.innerHTML = `
       <div class="add-card-content">
         <div class="add-icon-circle">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
         </div>
         <span class="add-card-title">+ Add Earning</span>
-        <span class="add-card-sub">Income, Salary, Dividend</span>
+        <span class="add-card-sub">Salary, Dividend</span>
       </div>
     `;
-    addCard.addEventListener('click', () => this.addEarningBlock());
+    addCard.addEventListener('click', () => this.openNewItemModal('earning'));
     this.earningsListEl.appendChild(addCard);
   }
 
-  renderSpendingsBlocks(totals, isAnnual, currency) {
+  renderSpendingsCards(totals, isAnnual, currency) {
     if (!this.spendingsListEl) return;
     this.spendingsListEl.innerHTML = '';
 
     this.state.spendings.forEach((spend, index) => {
       const norm = totals.spendingsMap[spend.id] || { monthly: 0, annual: 0 };
-      const normalizedDisplay = isAnnual 
-        ? `${formatMoney(norm.monthly, currency)}/mo` 
-        : `${formatMoney(norm.annual, currency)}/yr`;
+      const mainAmount = isAnnual ? norm.annual : norm.monthly;
+      const subAmount = isAnnual ? `${formatMoney(norm.monthly, currency)}/mo` : `${formatMoney(norm.annual, currency)}/yr`;
 
       const isPercentage = spend.type === 'percentage';
+      const cycleBadgeText = isPercentage ? `${spend.percentage || 0}% of Income` : (spend.cycle || 'monthly');
 
       const card = document.createElement('div');
       card.className = 'finance-card spending-card';
       card.dataset.id = spend.id;
 
       card.innerHTML = `
-        <div class="card-header">
-          <div class="card-badge spend-badge">#${index + 1} Outflow</div>
-          <div class="card-actions">
-            <button type="button" class="btn-icon btn-card-action" data-action="duplicate-spend" title="Duplicate">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-            </button>
-            <button type="button" class="btn-icon btn-card-action text-danger" data-action="delete-spend" title="Delete">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18m-2 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-            </button>
-          </div>
+        <div class="card-top-row">
+          <span class="card-badge spend-badge">#${index + 1} Outflow</span>
+          <span class="card-cycle-pill ${isPercentage ? 'pct-pill' : ''}">${cycleBadgeText}</span>
+          <button type="button" class="btn-icon btn-card-edit" title="Edit Spending" aria-label="Edit">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+          </button>
         </div>
 
-        <div class="card-body">
-          <div class="form-group">
-            <label class="field-label">Spending Name</label>
-            <input type="text" class="card-input input-name" placeholder="e.g. Rent, SIP, Groceries" value="${this.escapeHTML(spend.name || '')}">
-          </div>
+        <div class="card-title-text" title="${this.escapeHTML(spend.name || 'Untitled')}">
+          ${this.escapeHTML(spend.name || 'Untitled Spending')}
+        </div>
 
-          <!-- Type Switcher (Fixed Amount vs % of Income) -->
-          <div class="type-toggle-row">
-            <button type="button" class="type-toggle-btn ${!isPercentage ? 'active' : ''}" data-type="fixed">
-              Amount (${currency})
-            </button>
-            <button type="button" class="type-toggle-btn ${isPercentage ? 'active' : ''}" data-type="percentage">
-              % of Income
-            </button>
-          </div>
+        <div class="card-main-amount">
+          ${formatMoney(mainAmount, currency)}
+        </div>
 
-          <div class="form-row">
-            <div class="form-group flex-2">
-              <label class="field-label">${isPercentage ? 'Percentage (%)' : `Amount (${currency})`}</label>
-              ${isPercentage 
-                ? `<input type="number" step="0.5" min="0" max="100" class="card-input input-percentage" placeholder="20" value="${spend.percentage !== undefined ? spend.percentage : 10}">`
-                : `<input type="number" step="any" min="0" class="card-input input-amount" placeholder="0" value="${spend.amount !== undefined ? spend.amount : ''}">`
-              }
-            </div>
-            
-            <div class="form-group flex-2 ${isPercentage ? 'hidden' : ''}">
-              <label class="field-label">Cycle</label>
-              <select class="card-select select-cycle">
-                <option value="daily" ${spend.cycle === 'daily' ? 'selected' : ''}>Daily</option>
-                <option value="weekly" ${spend.cycle === 'weekly' ? 'selected' : ''}>Weekly</option>
-                <option value="monthly" ${spend.cycle === 'monthly' ? 'selected' : ''}>Monthly</option>
-                <option value="quarterly" ${spend.cycle === 'quarterly' ? 'selected' : ''}>Quarterly</option>
-                <option value="biannual" ${spend.cycle === 'biannual' ? 'selected' : ''}>Bi-Annual</option>
-                <option value="annual" ${spend.cycle === 'annual' ? 'selected' : ''}>Annual</option>
-                <option value="onetime" ${spend.cycle === 'onetime' ? 'selected' : ''}>One-Time</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label class="field-label">Hashtags <span class="subtext">(space separated)</span></label>
-            <input type="text" class="card-input input-tags" placeholder="#rent #essentials" value="${(spend.tags || []).join(' ')}">
-          </div>
-
+        <div class="card-bottom-row">
           <div class="card-tag-pills">
             ${(spend.tags || []).map(t => `<span class="tag-pill spend-tag-pill">${this.escapeHTML(t)}</span>`).join('')}
           </div>
-        </div>
-
-        <div class="card-footer">
-          <span class="norm-label">${isPercentage ? `Calculated (${spend.percentage || 0}%):` : 'Normalized:'}</span>
-          <span class="norm-value spend-val">${formatMoney(isAnnual ? norm.annual : norm.monthly, currency)} <small class="text-sub">(${normalizedDisplay})</small></span>
+          <span class="card-norm-sub">${subAmount}</span>
         </div>
       `;
 
-      // Event listeners
-      const nameInput = card.querySelector('.input-name');
-      const amountInput = card.querySelector('.input-amount');
-      const percentageInput = card.querySelector('.input-percentage');
-      const cycleSelect = card.querySelector('.select-cycle');
-      const tagsInput = card.querySelector('.input-tags');
-
-      nameInput.addEventListener('input', (e) => {
-        spend.name = e.target.value;
-        Storage.save(this.state);
-      });
-
-      if (amountInput) {
-        amountInput.addEventListener('input', (e) => {
-          spend.amount = parseFloat(e.target.value) || 0;
-          this.saveAndRender();
-        });
-      }
-
-      if (percentageInput) {
-        percentageInput.addEventListener('input', (e) => {
-          spend.percentage = parseFloat(e.target.value) || 0;
-          this.saveAndRender();
-        });
-      }
-
-      if (cycleSelect) {
-        cycleSelect.addEventListener('change', (e) => {
-          spend.cycle = e.target.value;
-          this.saveAndRender();
-        });
-      }
-
-      tagsInput.addEventListener('blur', (e) => {
-        const raw = e.target.value.trim();
-        spend.tags = raw ? raw.split(/\s+/).map(t => t.startsWith('#') ? t : `#${t}`) : [];
-        this.saveAndRender();
-      });
-
-      // Toggle Type
-      card.querySelectorAll('.type-toggle-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-          const type = e.target.dataset.type;
-          if (spend.type !== type) {
-            spend.type = type;
-            if (type === 'percentage' && !spend.percentage) {
-              spend.percentage = 10;
-            }
-            this.saveAndRender();
-          }
-        });
-      });
-
-      // Actions
-      card.querySelector('[data-action="duplicate-spend"]').addEventListener('click', () => {
-        this.duplicateSpending(spend);
-      });
-
-      card.querySelector('[data-action="delete-spend"]').addEventListener('click', () => {
-        this.deleteSpending(spend.id);
+      card.addEventListener('click', () => {
+        this.openEditModal('spending', spend);
       });
 
       this.spendingsListEl.appendChild(card);
     });
 
-    // Add Spend Block Card at the end of horizontal row
+    // Add Spending Block Card
     const addCard = document.createElement('div');
     addCard.className = 'finance-card add-card-block spend-add-block';
     addCard.innerHTML = `
       <div class="add-card-content">
         <div class="add-icon-circle spend-add-circle">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
         </div>
         <span class="add-card-title">+ Add Spending</span>
-        <span class="add-card-sub">Fixed amount or % of income</span>
+        <span class="add-card-sub">Fixed or % of income</span>
       </div>
     `;
-    addCard.addEventListener('click', () => this.addSpendingBlock());
+    addCard.addEventListener('click', () => this.openNewItemModal('spending'));
     this.spendingsListEl.appendChild(addCard);
   }
 
-  // Model Operations
-  addEarningBlock() {
-    const newEarn = {
+  // Edit / Add Modal Management
+  openNewItemModal(type) {
+    const isEarning = type === 'earning';
+    const newItem = isEarning ? {
       id: 'earn_' + Date.now(),
       name: '',
       amount: 0,
       cycle: 'monthly',
       tags: ['#income']
-    };
-    this.state.earnings.push(newEarn);
-    this.saveAndRender();
-    
-    // Scroll new block into view
-    setTimeout(() => {
-      const el = this.earningsListEl.querySelector(`[data-id="${newEarn.id}"]`);
-      if (el) {
-        el.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'end' });
-        el.querySelector('.input-name')?.focus();
-      }
-    }, 100);
-  }
-
-  duplicateEarning(earn) {
-    const copy = {
-      ...JSON.parse(JSON.stringify(earn)),
-      id: 'earn_' + Date.now(),
-      name: `${earn.name || 'Earning'} (Copy)`
-    };
-    this.state.earnings.push(copy);
-    this.saveAndRender();
-    this.showToast('Earning block duplicated');
-  }
-
-  deleteEarning(id) {
-    this.state.earnings = this.state.earnings.filter(e => e.id !== id);
-    this.saveAndRender();
-    this.showToast('Earning block removed');
-  }
-
-  addSpendingBlock() {
-    const newSpend = {
+    } : {
       id: 'spend_' + Date.now(),
       name: '',
       type: 'fixed',
@@ -724,33 +625,223 @@ class FinFunnelApp {
       cycle: 'monthly',
       tags: ['#spend']
     };
-    this.state.spendings.push(newSpend);
-    this.saveAndRender();
 
-    setTimeout(() => {
-      const el = this.spendingsListEl.querySelector(`[data-id="${newSpend.id}"]`);
-      if (el) {
-        el.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'end' });
-        el.querySelector('.input-name')?.focus();
-      }
-    }, 100);
+    this.openEditModal(type, newItem, true);
   }
 
-  duplicateSpending(spend) {
-    const copy = {
-      ...JSON.parse(JSON.stringify(spend)),
-      id: 'spend_' + Date.now(),
-      name: `${spend.name || 'Spending'} (Copy)`
+  openEditModal(type, item, isNew = false) {
+    this.activeEditItem = {
+      type,
+      isNew,
+      deleteConfirming: false,
+      data: JSON.parse(JSON.stringify(item))
     };
-    this.state.spendings.push(copy);
-    this.saveAndRender();
-    this.showToast('Spending block duplicated');
+
+    const isEarning = type === 'earning';
+    this.editModalTitle.textContent = isNew 
+      ? (isEarning ? 'Add New Earning' : 'Add New Spending')
+      : (isEarning ? 'Edit Earning' : 'Edit Spending');
+    
+    this.editModalSubtitle.textContent = isEarning 
+      ? 'Define income source parameters' 
+      : 'Define spending or allocation parameters';
+
+    // Reset delete button label
+    this.resetDeleteButton();
+
+    // Populate Fields
+    this.modalInputName.value = this.activeEditItem.data.name || '';
+    this.modalInputAmount.value = this.activeEditItem.data.amount !== undefined ? this.activeEditItem.data.amount : 0;
+    this.modalInputPercentage.value = this.activeEditItem.data.percentage !== undefined ? this.activeEditItem.data.percentage : 10;
+    this.modalSelectCycle.value = this.activeEditItem.data.cycle || 'monthly';
+    this.modalInputTags.value = (this.activeEditItem.data.tags || []).join(' ');
+
+    // Hide/show delete & duplicate for newly created items
+    if (this.btnModalDelete) this.btnModalDelete.style.display = isNew ? 'none' : 'inline-flex';
+    if (this.btnModalDuplicate) this.btnModalDuplicate.style.display = isNew ? 'none' : 'inline-flex';
+
+    this.updateEditModalUI();
+
+    if (this.editModal && this.editModalOverlay) {
+      this.editModal.classList.add('open');
+      this.editModalOverlay.classList.add('open');
+      setTimeout(() => this.modalInputName.focus(), 150);
+    }
   }
 
-  deleteSpending(id) {
-    this.state.spendings = this.state.spendings.filter(s => s.id !== id);
+  resetDeleteButton() {
+    if (this.btnModalDelete) {
+      this.btnModalDelete.innerHTML = `
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+        <span>Delete</span>
+      `;
+      this.btnModalDelete.classList.remove('btn-confirm-delete');
+    }
+  }
+
+  handleModalDelete() {
+    if (!this.activeEditItem) return;
+
+    if (!this.activeEditItem.deleteConfirming) {
+      // First click: Ask for confirmation on button
+      this.activeEditItem.deleteConfirming = true;
+      this.btnModalDelete.innerHTML = `
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
+        <span>Confirm?</span>
+      `;
+      this.btnModalDelete.classList.add('btn-confirm-delete');
+      return;
+    }
+
+    // Second click: perform deletion
+    const { type, data } = this.activeEditItem;
+
+    if (type === 'earning') {
+      this.state.earnings = this.state.earnings.filter(e => e.id !== data.id);
+    } else {
+      this.state.spendings = this.state.spendings.filter(s => s.id !== data.id);
+    }
+
+    this.closeEditModal();
     this.saveAndRender();
-    this.showToast('Spending block removed');
+    this.showToast('Block deleted');
+  }
+
+  updateEditModalUI() {
+    if (!this.activeEditItem) return;
+    const isEarning = this.activeEditItem.type === 'earning';
+    const isPercentage = !isEarning && this.activeEditItem.data.type === 'percentage';
+
+    if (isEarning) {
+      this.modalSpendTypeRow.classList.add('hidden');
+      this.modalAmountContainer.classList.remove('hidden');
+      this.modalPercentageContainer.classList.add('hidden');
+      this.modalCycleContainer.classList.remove('hidden');
+    } else {
+      this.modalSpendTypeRow.classList.remove('hidden');
+      this.modalTypeFixed.classList.toggle('active', !isPercentage);
+      this.modalTypePercentage.classList.toggle('active', isPercentage);
+
+      if (isPercentage) {
+        this.modalAmountContainer.classList.add('hidden');
+        this.modalPercentageContainer.classList.remove('hidden');
+        this.modalCycleContainer.classList.add('hidden');
+      } else {
+        this.modalAmountContainer.classList.remove('hidden');
+        this.modalPercentageContainer.classList.add('hidden');
+        this.modalCycleContainer.classList.remove('hidden');
+      }
+    }
+
+    this.updateModalLivePreview();
+  }
+
+  updateModalLivePreview() {
+    if (!this.activeEditItem) return;
+    const currency = this.state.currency || '₹';
+    const isEarning = this.activeEditItem.type === 'earning';
+    const isPercentage = !isEarning && this.activeEditItem.data.type === 'percentage';
+    const totals = this.calculateTotals();
+
+    let monthly = 0;
+    let annual = 0;
+
+    if (isPercentage) {
+      const pct = (parseFloat(this.modalInputPercentage.value) || 0) / 100;
+      monthly = totals.totalEarningsMonthly * pct;
+      annual = totals.totalEarningsAnnual * pct;
+    } else {
+      const amt = parseFloat(this.modalInputAmount.value) || 0;
+      const cycle = this.modalSelectCycle.value || 'monthly';
+      const norm = this.normalizeFrequency(amt, cycle);
+      monthly = norm.monthly;
+      annual = norm.annual;
+    }
+
+    this.modalPreviewImpact.textContent = `${formatMoney(monthly, currency)} /mo • ${formatMoney(annual, currency)} /yr`;
+  }
+
+  saveEditModal() {
+    if (!this.activeEditItem) return;
+
+    const { type, isNew, data } = this.activeEditItem;
+    data.name = this.modalInputName.value.trim() || (type === 'earning' ? 'Income' : 'Spend');
+    data.amount = parseFloat(this.modalInputAmount.value) || 0;
+    data.cycle = this.modalSelectCycle.value || 'monthly';
+    
+    if (type === 'spending') {
+      if (data.type === 'percentage') {
+        data.percentage = parseFloat(this.modalInputPercentage.value) || 0;
+      }
+    }
+
+    const tagRaw = this.modalInputTags.value.trim();
+    data.tags = tagRaw ? tagRaw.split(/\s+/).map(t => t.startsWith('#') ? t : `#${t}`) : [];
+
+    if (type === 'earning') {
+      if (isNew) {
+        this.state.earnings.push(data);
+      } else {
+        const idx = this.state.earnings.findIndex(e => e.id === data.id);
+        if (idx !== -1) this.state.earnings[idx] = data;
+      }
+    } else {
+      if (isNew) {
+        this.state.spendings.push(data);
+      } else {
+        const idx = this.state.spendings.findIndex(s => s.id === data.id);
+        if (idx !== -1) this.state.spendings[idx] = data;
+      }
+    }
+
+    this.closeEditModal();
+    this.saveAndRender();
+    this.showToast(isNew ? 'New block added' : 'Changes saved');
+  }
+
+  duplicateItemFromModal() {
+    if (!this.activeEditItem) return;
+    const { type, data } = this.activeEditItem;
+    const copy = {
+      ...JSON.parse(JSON.stringify(data)),
+      id: (type === 'earning' ? 'earn_' : 'spend_') + Date.now(),
+      name: `${data.name || 'Item'} (Copy)`
+    };
+
+    if (type === 'earning') {
+      this.state.earnings.push(copy);
+    } else {
+      this.state.spendings.push(copy);
+    }
+
+    this.closeEditModal();
+    this.saveAndRender();
+    this.showToast('Block duplicated');
+  }
+
+  deleteItemFromModal() {
+    if (!this.activeEditItem) return;
+    const { type, data } = this.activeEditItem;
+
+    if (confirm(`Delete "${data.name || 'this block'}"?`)) {
+      if (type === 'earning') {
+        this.state.earnings = this.state.earnings.filter(e => e.id !== data.id);
+      } else {
+        this.state.spendings = this.state.spendings.filter(s => s.id !== data.id);
+      }
+
+      this.closeEditModal();
+      this.saveAndRender();
+      this.showToast('Block deleted');
+    }
+  }
+
+  closeEditModal() {
+    this.activeEditItem = null;
+    if (this.editModal && this.editModalOverlay) {
+      this.editModal.classList.remove('open');
+      this.editModalOverlay.classList.remove('open');
+    }
   }
 
   // Analytics Modals
@@ -765,7 +856,7 @@ class FinFunnelApp {
     }
   }
 
-  closeModal() {
+  closeAnalyticsModal() {
     this.activeAnalyticsModal = null;
     if (this.analyticsModal && this.modalOverlay) {
       this.analyticsModal.classList.remove('open');
@@ -892,8 +983,6 @@ class FinFunnelApp {
       if (val <= 0) return;
 
       const tags = (item.tags && item.tags.length > 0) ? item.tags : ['#general'];
-      
-      // Distribute amount among tags evenly
       const splitVal = val / tags.length;
 
       tags.forEach(rawTag => {
@@ -908,7 +997,6 @@ class FinFunnelApp {
       value: tagMap[tag]
     }));
 
-    // Sort descending by value
     return result.sort((a, b) => b.value - a.value);
   }
 
