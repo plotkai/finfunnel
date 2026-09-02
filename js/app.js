@@ -62,6 +62,10 @@ class FinFunnelApp {
     this.btnEarningsViewToggle = document.getElementById('btn-earnings-view-toggle');
     this.btnSpendingsViewToggle = document.getElementById('btn-spendings-view-toggle');
 
+    // Fixed Add Action Bars
+    this.btnAddEarningBar = document.getElementById('btn-add-earning-bar');
+    this.btnAddSpendingBar = document.getElementById('btn-add-spending-bar');
+
     // Theme Switcher Elements
     this.btnThemeToggle = document.getElementById('btn-theme-toggle');
     this.themeIconSun = this.btnThemeToggle?.querySelector('.theme-icon-sun');
@@ -148,6 +152,15 @@ class FinFunnelApp {
         this.state.spendingsView = (this.state.spendingsView === 'list') ? 'carousel' : 'list';
         this.saveAndRender();
       });
+    }
+
+    // Fixed Add Action Bars Click Events
+    if (this.btnAddEarningBar) {
+      this.btnAddEarningBar.addEventListener('click', () => this.openNewItemModal('earning'));
+    }
+
+    if (this.btnAddSpendingBar) {
+      this.btnAddSpendingBar.addEventListener('click', () => this.openNewItemModal('spending'));
     }
     // Period Dropdown Toggle
     if (this.btnPeriodDropdown && this.periodDropdownMenu) {
@@ -573,16 +586,6 @@ class FinFunnelApp {
         this.earningsListEl.appendChild(row);
       });
 
-      // Add Earning Row in List Mode
-      const addRow = document.createElement('div');
-      addRow.className = 'finance-list-row add-list-row';
-      addRow.innerHTML = `
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-        <span class="add-list-label">+ Add Earning</span>
-      `;
-      addRow.addEventListener('click', () => this.openNewItemModal('earning'));
-      this.earningsListEl.appendChild(addRow);
-
     } else {
       // Render Horizontal Cards
       this.state.earnings.forEach((earn, index) => {
@@ -625,21 +628,6 @@ class FinFunnelApp {
 
         this.earningsListEl.appendChild(card);
       });
-
-      // Add Earning Block Card
-      const addCard = document.createElement('div');
-      addCard.className = 'finance-card add-card-block';
-      addCard.innerHTML = `
-        <div class="add-card-content">
-          <div class="add-icon-circle">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-          </div>
-          <span class="add-card-title">+ Add Earning</span>
-          <span class="add-card-sub">Salary, Dividend</span>
-        </div>
-      `;
-      addCard.addEventListener('click', () => this.openNewItemModal('earning'));
-      this.earningsListEl.appendChild(addCard);
     }
   }
 
@@ -693,16 +681,6 @@ class FinFunnelApp {
         this.spendingsListEl.appendChild(row);
       });
 
-      // Add Spending Row in List Mode
-      const addRow = document.createElement('div');
-      addRow.className = 'finance-list-row add-list-row spend-add-list-row';
-      addRow.innerHTML = `
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-        <span class="add-list-label">+ Add Spending</span>
-      `;
-      addRow.addEventListener('click', () => this.openNewItemModal('spending'));
-      this.spendingsListEl.appendChild(addRow);
-
     } else {
       // Render Horizontal Cards
       this.state.spendings.forEach((spend, index) => {
@@ -748,21 +726,6 @@ class FinFunnelApp {
 
         this.spendingsListEl.appendChild(card);
       });
-
-      // Add Spending Block Card
-      const addCard = document.createElement('div');
-      addCard.className = 'finance-card add-card-block spend-add-block';
-      addCard.innerHTML = `
-        <div class="add-card-content">
-          <div class="add-icon-circle spend-add-circle">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-          </div>
-          <span class="add-card-title">+ Add Spending</span>
-          <span class="add-card-sub">Fixed or % of income</span>
-        </div>
-      `;
-      addCard.addEventListener('click', () => this.openNewItemModal('spending'));
-      this.spendingsListEl.appendChild(addCard);
     }
   }
 
